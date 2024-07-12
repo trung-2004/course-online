@@ -1,0 +1,255 @@
+version: '3'
+
+services:
+
+  zookeeper:
+    image: wurstmeister/zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    networks:
+      - microservice_network
+
+  kafka:
+    image: wurstmeister/kafka
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    networks:
+      - microservice_network
+    depends_on:
+      - zookeeper
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    command: [ "redis-server", "--requirepass", "12345678" ]
+    networks:
+      - microservice_network
+
+  registry-service:
+    image: registry-service:latest
+    container_name: registry-service
+    build:
+      context: ./registry-service
+      dockerfile: Dockerfile
+    ports:
+      - "8762:8762"
+    networks:
+      - microservice_network
+
+  api-gateway:
+    image: api-gateway:latest
+    container_name: api-gateway
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "8888:8888"
+    networks:
+      - microservice_network
+    depends_on:
+      - registry-service
+    environment:
+      IDENTITY_HOST: identity-service
+      PROFILE_HOST: profile-service
+      COURSE_HOST: course-service
+      PAYMENT_HOST: payment-service
+      PAYMENT1_HOST: payment1-service
+      TEST_HOST: test-service
+      EUREKA_HOST: registry-service
+
+  mysqldb:
+    container_name: mysqldb
+    image: mysql:8.0.13
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: course_online
+    ports:
+      - "3308:3306"
+    networks:
+      - microservice_network
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  course-service:
+    image: course-service:latest
+    container_name: course-service
+    build:
+      context: ./course-service
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8082"
+    networks:
+      - microservice_network
+    depends_on:
+      - registry-service
+      - mysqldb
+      - kafka
+      - redis
+    environment:
+      MYSQL_HOST: mysqldb
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: 123456
+      SPRING_KAFKA_BOOTSTRAP-SERVERS_HOST: kafka
+      SPRING_KAFKA_BOOTSTRAP-SERVERS_PORT: 9092
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: 12345678
+      EUREKA_HOST: registry-service
+      PROFILE_HOST: profile-service
+      PAYMENT_HOST: payment-service
+      TEST_HOST: test-service
+
+  email-service:
+    image: email-service:latest
+    container_name: email-service
+    build:
+      context: ./email-service
+      dockerfile: Dockerfile
+    ports:
+      - "8083:8083"
+    networks:
+      - microservice_network
+    depends_on:
+      - registry-service
+      - kafka
+    environment:
+      SPRING_KAFKA_BOOTSTRAP-SERVERS_HOST: kafka
+      SPRING_KAFKA_BOOTSTRAP-SERVERS_PORT: 9092
+      EUREKA_HOST: registry-service
+
+  identity-service:
+    image: identity-service:latest
+    container_name: identity-service
+    build:
+      context: ./identity-service
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    networks:
+      - microservice_network
+    depends_on:
+      - registry-service
+      - api-gateway
+      - mysqldb
+    environment:
+      MYSQL_HOST: mysqldb
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: 123456
+      EUREKA_HOST: registry-service
+      PROFILE_HOST: profile-service
+
+  profile-service:
+    image: profile-service:latest
+    container_name: profile-service
+    build:
+      context: ./profile-service
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    networks:
+      - microservice_network
+    depends_on:
+      - registry-service
+      - api-gateway
+      - mysqldb
+    environment:
+      MYSQL_HOST: mysqldb
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: 123456
+      EUREKA_HOST: registry-service
+
+  payment1-service:
+    image: payment1-service:latest
+    container_name: payment1-service
+    build:
+      context: ./payment1-service
+      dockerfile: Dockerfile
+    ports:
+      - "8085:8085"
+    networks:
+      - microservice_network
+    depends_on:
+      - registry-service
+      - api-gateway
+      - mysqldb
+      - kafka
+    environment:
+      MYSQL_HOST: mysqldb
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: 123456
+      SPRING_KAFKA_BOOTSTRAP-SERVERS_HOST: kafka
+      SPRING_KAFKA_BOOTSTRAP-SERVERS_PORT: 9092
+      EUREKA_HOST: registry-service
+      IDENTITY_HOST: identity-service
+      COURSE_HOST: course-service
+      PAYMENT_HOST: payment-service
+
+  payment-service:
+    image: payment-service:latest
+    container_name: payment-service
+    build:
+      context: ./payment-service
+      dockerfile: Dockerfile
+    ports:
+      - "8084:8084"
+    networks:
+      - microservice_network
+    depends_on:
+      - registry-service
+      - api-gateway
+      - mysqldb
+      - kafka
+    environment:
+      MYSQL_HOST: mysqldb
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: 123456
+      SPRING_KAFKA_BOOTSTRAP-SERVERS_HOST: kafka
+      SPRING_KAFKA_BOOTSTRAP-SERVERS_PORT: 9092
+      EUREKA_HOST: registry-service
+      IDENTITY_HOST: identity-service
+      COURSE_HOST: course-service
+      PAYMENT1_HOST: payment1-service
+
+  test-service:
+    image: test-service:latest
+    container_name: test-service
+    build:
+      context: ./test-service
+      dockerfile: Dockerfile
+    ports:
+      - "8086:8086"
+    networks:
+      - microservice_network
+    depends_on:
+      - registry-service
+      - api-gateway
+      - mysqldb
+      - kafka
+    environment:
+      MYSQL_HOST: mysqldb
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: 123456
+      SPRING_KAFKA_BOOTSTRAP-SERVERS_HOST: kafka
+      SPRING_KAFKA_BOOTSTRAP-SERVERS_PORT: 9092
+      EUREKA_HOST: registry-service
+      COURSE_HOST: course-service
+      PAYMENT_HOST: payment-service
+networks:
+  microservice_network:
+    driver: bridge
+volumes:
+  mysql-data:

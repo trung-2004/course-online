@@ -1,0 +1,65 @@
+server:
+  port: 8888
+
+app:
+  api-prefix: /api/v1
+
+eureka:
+  client:
+    fetch-registry: true
+    register-with-eureka: true
+    service-url:
+      defaultZone: http://${EUREKA_HOST:localhost}:8762/eureka/
+  instance:
+    prefer-ip-address: true
+
+app1:
+  services:
+    identity: http://${IDENTITY_HOST:localhost}:8080/identity
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: identity_service
+          uri: http://${IDENTITY_HOST:localhost}:8080
+          predicates:
+            - Path=${app.api-prefix}/identity/**
+          filters:
+            - StripPrefix=2
+        - id: profile_service
+          uri: http://${PROFILE_HOST:localhost}:8081
+          predicates:
+            - Path=${app.api-prefix}/profile/users/**
+          filters:
+            - StripPrefix=2
+        - id: course_service
+          uri: http://${COURSE_HOST:localhost}:8082
+          predicates:
+            - Path=${app.api-prefix}/course/**
+          filters:
+            - StripPrefix=2
+        - id: payment_service
+          uri: http://${PAYMENT_HOST:localhost}:8084
+          predicates:
+            - Path=${app.api-prefix}/payment/**
+          filters:
+            - StripPrefix=2
+        - id: payment1_service
+          uri: http://${PAYMENT1_HOST:localhost}:8085
+          predicates:
+            - Path=${app.api-prefix}/payment1/**
+          filters:
+            - StripPrefix=2
+        - id: test_service
+          uri: http://${TEST_HOST:localhost}:8086
+          predicates:
+            - Path=${app.api-prefix}/test/**
+          filters:
+            - StripPrefix=2
+
+      discovery:
+        locator:
+          enabled: true

@@ -1,0 +1,8 @@
+#VNPAY
+PAY_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+TMN_CODE=RNT2VBPW
+SECRET_KEY=GAX12WBRHQQN85YG68LBKYCOMPTCD96L
+RETURN_URL=http://localhost:8888/api/v1/payment/vn-pay-callback
+VERSION=2.1.0
+COMMAND=pay
+ORDER_TYPE=other

@@ -1,0 +1,31 @@
+server:
+  port: 8083
+  servlet:
+    context-path: /email
+spring:
+  application:
+    name: email-service
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: hoangtulaubar@gmail.com
+    password: eeeinaobsqfytgra
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP-SERVERS_HOST:localhost}:${SPRING_KAFKA_BOOTSTRAP-SERVERS_PORT:9092}
+    consumer:
+      value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
+      auto-offset-reset: earliest
+eureka:
+  client:
+    fetch-registry: true
+    register-with-eureka: true
+    service-url:
+      defaultZone: http://${EUREKA_HOST:localhost}:8762/eureka/
+  instance:
+    prefer-ip-address: true
